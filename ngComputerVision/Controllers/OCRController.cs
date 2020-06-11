@@ -24,9 +24,9 @@ namespace ngComputerVision.Controllers
 
         public OCRController()
         {
-            subscriptionKey = "b993f3afb4e04119bd8ed37171d4ec71";
-            endpoint = "https://ankitocrdemo.cognitiveservices.azure.com/";
-            uriBase = endpoint + "vision/v2.1/ocr";
+            subscriptionKey = "";
+            endpoint = "https://visionwo.cognitiveservices.azure.com/";
+            uriBase = endpoint + "vision/v2.0/describe?maxCandidates=2";
         }
 
         [HttpPost, DisableRequestSizeLimit]
@@ -49,23 +49,35 @@ namespace ngComputerVision.Controllers
 
                         string JSONResult = await ReadTextFromStream(imageFileBytes);
 
+                        ImageDescription imgDesc = JsonConvert.DeserializeObject<ImageDescription>(JSONResult);
+                        ImageAnalysis imageAnalysis = JsonConvert.DeserializeObject<ImageAnalysis>(JSONResult);
+                        TagResult TagResult = JsonConvert.DeserializeObject<TagResult>(JSONResult);
                         OcrResult ocrResult = JsonConvert.DeserializeObject<OcrResult>(JSONResult);
-                        if (!ocrResult.Language.Equals("unk"))
+
+                        if (imageAnalysis.Description.Tags.Count > 0)
                         {
-                            foreach (OcrLine ocrLine in ocrResult.Regions[0].Lines)
+                            foreach (var taggy in imageAnalysis.Description.Tags)
                             {
-                                foreach (OcrWord ocrWord in ocrLine.Words)
-                                {
-                                    sb.Append(ocrWord.Text);
-                                    sb.Append(' ');
-                                }
-                                sb.AppendLine();
+                                sb.Append(taggy);
+                                sb.Append(' ');
                             }
                         }
-                        else
-                        {
-                            sb.Append("This language is not supported.");
-                        }
+                        //if (!ocrResult.Language.Equals("unk"))
+                        //{
+                        //    foreach (OcrLine ocrLine in ocrResult.Regions[0].Lines)
+                        //    {
+                        //        foreach (OcrWord ocrWord in ocrLine.Words)
+                        //        {
+                        //            sb.Append(ocrWord.Text);
+                        //            sb.Append(' ');
+                        //        }
+                        //        sb.AppendLine();
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    sb.Append("This language is not supported.");
+                        //}
                         ocrResultDTO.DetectedText = sb.ToString();
                         ocrResultDTO.Language = ocrResult.Language;
                     }
