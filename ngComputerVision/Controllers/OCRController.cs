@@ -11,6 +11,7 @@ using ngComputerVision.Models;
 using System.Collections.Generic;
 using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
 using ngComputerVision.DTOModels;
+using System.Linq;
 
 namespace ngComputerVision.Controllers
 {
@@ -24,7 +25,7 @@ namespace ngComputerVision.Controllers
 
         public OCRController()
         {
-            subscriptionKey = "";
+            subscriptionKey = "37b5da280e9b4042b0aa43c434ca00f0";
             endpoint = "https://visionwo.cognitiveservices.azure.com/";
             uriBase = endpoint + "vision/v2.0/describe?maxCandidates=2";
         }
@@ -32,7 +33,40 @@ namespace ngComputerVision.Controllers
         [HttpPost, DisableRequestSizeLimit]
         public async Task<OcrResultDTO> Post()
         {
-            StringBuilder sb = new StringBuilder();
+            var GeneralRepairKeyWords = new string[] { "hammer", "saw", "nail" };
+            var HVACKeyWords = new string[] {  "fan", "air",  "conditioning", "heat", "HVAC", 
+                                                "unit", "leak", "leaking", "cool", "heat", "cooling", "heating", 
+                                                "hot", "AC", "thermostat", "RTU", "humidity", "warm", "humid", "EMS", 
+                                                "vent", "ventilation", "roof", "top", "refrigerant", "broken", "repair",
+                                                "clock", "white", "remote", "control", "outdoor", "building", "refrigerator", "microwave",  };
+            var JanitorialKeyWords = new string[] { "janitor", "floor", "broom", "dirty", "wet", "mop" };
+            var LighhtingKeyWords = new string[] { "light", "bulb", "fluorescent", "sign", "lamp", "mercury", "tube" };
+            var LocksmithKeyWords = new string[] { "lock", "door", "locksmith", "key" };
+            var PlumbingKeyWords = new string[] { "faucet", "plumber", "pipe", "sink", "water" };
+            var PestControlKeyWords = new string[] { "insect", "rat", "mouse", "honeycomb", "ant", "bee", "animal", "mammal", "rodent", "bird"};
+            var AutoDoorsgKeyWords = new string[] { "door", "autodoor", "transparent", "glass", "building" };
+            var ElectricalKeyWords = new string[] { "wire", "electricity", "circuit" };
+            var FireSafetyKeyWords = new string[] { "fire", "extinguisher", "safety" };
+
+            var GeneralRepairScore = 0;
+            var HVACScore = 0;
+            var JanitorialScore = 0;
+            var LighhtingScore = 0;
+            var LocksmithScore = 0;
+            var PlumbingScore = 0;
+            var PestControlScore = 0;
+            var AutoDoorsgScore = 0;
+            var ElectricalScore = 0;
+            var FireSafetyScore = 0;
+
+      
+
+
+
+
+
+
+        StringBuilder sb = new StringBuilder();
             OcrResultDTO ocrResultDTO = new OcrResultDTO();
             try
             {
@@ -58,10 +92,91 @@ namespace ngComputerVision.Controllers
                         {
                             foreach (var taggy in imageAnalysis.Description.Tags)
                             {
+                                if (GeneralRepairKeyWords.Contains(taggy)) GeneralRepairScore++;
+                                if (HVACKeyWords.Contains(taggy)) HVACScore++;
+                                if (JanitorialKeyWords.Contains(taggy)) JanitorialScore++;
+                                if (LighhtingKeyWords.Contains(taggy)) LighhtingScore++;
+                                if (LocksmithKeyWords.Contains(taggy)) LocksmithScore++;
+                                if (PlumbingKeyWords.Contains(taggy)) PlumbingScore++;
+                                if (PestControlKeyWords.Contains(taggy)) PestControlScore++;
+                                if (AutoDoorsgKeyWords.Contains(taggy)) AutoDoorsgScore++;
+                                if (ElectricalKeyWords.Contains(taggy)) ElectricalScore++;
+                                if (FireSafetyKeyWords.Contains(taggy)) FireSafetyScore++;
                                 sb.Append(taggy);
                                 sb.Append(' ');
                             }
                         }
+                        if (imageAnalysis.Description.Captions.Count > 0)
+                        {
+                            foreach (var capi in imageAnalysis.Description.Captions)
+                            {
+                                sb.Append("---");
+                                sb.Append(capi.Text);
+                                sb.Append(' ');
+                            }
+                        }
+                        var ppp = new p();
+                        ppp.GeneralRepairScore = GeneralRepairScore;
+                        ppp.HVACScore = HVACScore;
+                        ppp.JanitorialScore = JanitorialScore;
+                        ppp.LighhtingScore = LighhtingScore;
+                        ppp.LocksmithScore = LocksmithScore;
+                        ppp.PlumbingScore = PlumbingScore;
+                        ppp.PestControlScore = PestControlScore;
+                        ppp.AutoDoorsgScore = AutoDoorsgScore;
+                        ppp.ElectricalScore = ElectricalScore;
+                        ppp.FireSafetyScore = FireSafetyScore;
+
+           
+
+                        var winner = ppp.GetType().GetFields().OrderByDescending(f => f.GetValue(ppp)).First().Name;
+                        var selectedRTRC = "Unable to decide...";
+                        switch (winner)
+                        {
+
+
+                            case "GeneralRepairScore":
+                                selectedRTRC = "General Repair";
+                                break;
+                            case "HVACScore":
+                                selectedRTRC = "HVAC";
+                                break;
+                            case "JanitorialScore":
+                                selectedRTRC = "Janitorial";
+                                break;
+                            case "LighhtingScore":
+                                selectedRTRC = "Lighting";
+                                break;
+                            case "LocksmithScore":
+                                selectedRTRC = "Locksmith";
+                                break;
+                            case "PlumbingScore":
+                                selectedRTRC = "Plumbing";
+                                break;
+                            case "PestControlScore":
+                                selectedRTRC = "Pest Control";
+                                break;
+                            case "AutoDoorsgScore":
+                                selectedRTRC = "Autodoors";
+                                break;
+                            case "ElectricalScore":
+                                selectedRTRC = "Electrical";
+                                break;
+                            case "FireSafetyScore":
+                                selectedRTRC = "Fire Safety";
+                                break;
+                            default:
+                                break;
+
+
+                        }
+
+                        sb.Append("------------------------------------------->");
+                        sb.Append(selectedRTRC);
+                        sb.Append(' ');
+
+                        
+
                         //if (!ocrResult.Language.Equals("unk"))
                         //{
                         //    foreach (OcrLine ocrLine in ocrResult.Regions[0].Lines)
@@ -146,4 +261,13 @@ namespace ngComputerVision.Controllers
             }
         }
     }
+
+
+   public  struct p
+    {
+        public int GeneralRepairScore, HVACScore, JanitorialScore, LighhtingScore, LocksmithScore,
+            PlumbingScore, PestControlScore, AutoDoorsgScore, ElectricalScore, FireSafetyScore;
+    }
+
+
 }
