@@ -21,7 +21,7 @@ import { OcrComponent } from './ocr/ocr.component';
     HttpClientModule,
     FormsModule,
     RouterModule.forRoot([
-      { path: '', component: HomeComponent, pathMatch: 'full' },
+      { path: '', component: OcrComponent, pathMatch: 'full' },
       { path: 'computer-vision-ocr', component: OcrComponent },
     ])
   ],

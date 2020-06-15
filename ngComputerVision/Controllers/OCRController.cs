@@ -1,17 +1,19 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using Amazon.Rekognition;
+using Amazon.Rekognition.Model;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using ngComputerVision.DTOModels;
+using ngComputerVision.Models;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using System.IO;
-using Newtonsoft.Json;
 using System.Text;
-using ngComputerVision.Models;
-using System.Collections.Generic;
-using Microsoft.Azure.CognitiveServices.Vision.ComputerVision.Models;
-using ngComputerVision.DTOModels;
-using System.Linq;
+using System.Threading.Tasks;
 
 namespace ngComputerVision.Controllers
 {
@@ -23,6 +25,26 @@ namespace ngComputerVision.Controllers
         static string endpoint;
         static string uriBase;
 
+
+        string[] GeneralRepairKeyWords = new string[] { "HAMMER", "SAW", "NAIL" };
+        string[] HVACKeyWords = new string[] {  "FAN", "AIR",  "CONDITIONING", "HEAT", "HVAC", "AIR CONDITIONER", "APPLIANCE",
+                                                "UNIT", "LEAK", "LEAKING", "COOL", "COOLING", "HEATING",
+                                                "HOT", "AC", "thermostat", "RTU", "HUMIDITY", "WARM", "HUMID", "EMS",
+                                                "VENT", "VENTILATION", "ROOF", "TOP", "REFRIGERANT", "BROKEN", "REPAIR",
+                                                "CLOCK", "WHITE", "REMOTE", "CONTROL", "OUTDOOR", "BUILDING", "REFRIGERATOR", "MICROWAVE",  };
+        string[] JanitorialKeyWords = new string[] { "JANITOR", "FLOOR", "BROOM", "dirty", "WET", "MOP" };
+        string[] LighhtingKeyWords = new string[] { "LIGHT", "BULB", "FLUORESCENT", "SIGN", "LAMP", "MERCURY", "tube" };
+        string[] LocksmithKeyWords = new string[] { "LOCK", "DOOR", "LOCKSMITH", "KEY" };
+        string[] PlumbingKeyWords = new string[] { "SINK FAUCET", "FAUCET", "PLUMBER", "PIPE", "SINK", "water", "BATHROOM", "TOILET", "INDOOR", };
+        string[] PestControlKeyWords = new string[] { "INSECT", "RAT", "MOUSE", "HONEYCOMB", "ANT", "BEE", "ANIMAL", "MAMMAL", "RODENT", "BIRD", "NEST", 
+                                                    "HIVE" };
+        string[] AutoDoorsgKeyWords = new string[] { "DOOR", "AUTODOOR", "TRANSPARENT", "glass", "building" };
+        string[] ElectricalKeyWords = new string[] { "WIRE", "ELECTRICITY", "CIRCUIT", "WIRING", "CABLE", "ELECTRONICS" };
+        string[] FireSafetyKeyWords = new string[] { "fire", "EXTINGUISHER", "SAFETY" };
+
+
+
+
         public OCRController()
         {
             subscriptionKey = "37b5da280e9b4042b0aa43c434ca00f0";
@@ -33,40 +55,7 @@ namespace ngComputerVision.Controllers
         [HttpPost, DisableRequestSizeLimit]
         public async Task<OcrResultDTO> Post()
         {
-            var GeneralRepairKeyWords = new string[] { "hammer", "saw", "nail" };
-            var HVACKeyWords = new string[] {  "fan", "air",  "conditioning", "heat", "HVAC", 
-                                                "unit", "leak", "leaking", "cool", "heat", "cooling", "heating", 
-                                                "hot", "AC", "thermostat", "RTU", "humidity", "warm", "humid", "EMS", 
-                                                "vent", "ventilation", "roof", "top", "refrigerant", "broken", "repair",
-                                                "clock", "white", "remote", "control", "outdoor", "building", "refrigerator", "microwave",  };
-            var JanitorialKeyWords = new string[] { "janitor", "floor", "broom", "dirty", "wet", "mop" };
-            var LighhtingKeyWords = new string[] { "light", "bulb", "fluorescent", "sign", "lamp", "mercury", "tube" };
-            var LocksmithKeyWords = new string[] { "lock", "door", "locksmith", "key" };
-            var PlumbingKeyWords = new string[] { "faucet", "plumber", "pipe", "sink", "water" };
-            var PestControlKeyWords = new string[] { "insect", "rat", "mouse", "honeycomb", "ant", "bee", "animal", "mammal", "rodent", "bird"};
-            var AutoDoorsgKeyWords = new string[] { "door", "autodoor", "transparent", "glass", "building" };
-            var ElectricalKeyWords = new string[] { "wire", "electricity", "circuit" };
-            var FireSafetyKeyWords = new string[] { "fire", "extinguisher", "safety" };
-
-            var GeneralRepairScore = 0;
-            var HVACScore = 0;
-            var JanitorialScore = 0;
-            var LighhtingScore = 0;
-            var LocksmithScore = 0;
-            var PlumbingScore = 0;
-            var PestControlScore = 0;
-            var AutoDoorsgScore = 0;
-            var ElectricalScore = 0;
-            var FireSafetyScore = 0;
-
-      
-
-
-
-
-
-
-        StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             OcrResultDTO ocrResultDTO = new OcrResultDTO();
             try
             {
@@ -81,120 +70,36 @@ namespace ngComputerVision.Controllers
                         byte[] imageFileBytes = memoryStream.ToArray();
                         memoryStream.Flush();
 
-                        string JSONResult = await ReadTextFromStream(imageFileBytes);
+                        string JSONResult = await ReadTextFromStreamAzure(imageFileBytes);
+                        string JSONResult2 = await ReadTextFromStreamAWS(imageFileBytes);
 
-                        ImageDescription imgDesc = JsonConvert.DeserializeObject<ImageDescription>(JSONResult);
+                        ImageDescription imgDescAzure = JsonConvert.DeserializeObject<ImageDescription>(JSONResult);
+                        var AWSList = JsonConvert.DeserializeObject<List<string>>(JSONResult2);
                         ImageAnalysis imageAnalysis = JsonConvert.DeserializeObject<ImageAnalysis>(JSONResult);
                         TagResult TagResult = JsonConvert.DeserializeObject<TagResult>(JSONResult);
-                        OcrResult ocrResult = JsonConvert.DeserializeObject<OcrResult>(JSONResult);
-
-                        if (imageAnalysis.Description.Tags.Count > 0)
+                        //OcrResult ocrResult = JsonConvert.DeserializeObject<OcrResult>(JSONResult);
+                        var AzureList = new List<string>();
+                        foreach (var item in imageAnalysis.Description.Tags)
                         {
-                            foreach (var taggy in imageAnalysis.Description.Tags)
-                            {
-                                if (GeneralRepairKeyWords.Contains(taggy)) GeneralRepairScore++;
-                                if (HVACKeyWords.Contains(taggy)) HVACScore++;
-                                if (JanitorialKeyWords.Contains(taggy)) JanitorialScore++;
-                                if (LighhtingKeyWords.Contains(taggy)) LighhtingScore++;
-                                if (LocksmithKeyWords.Contains(taggy)) LocksmithScore++;
-                                if (PlumbingKeyWords.Contains(taggy)) PlumbingScore++;
-                                if (PestControlKeyWords.Contains(taggy)) PestControlScore++;
-                                if (AutoDoorsgKeyWords.Contains(taggy)) AutoDoorsgScore++;
-                                if (ElectricalKeyWords.Contains(taggy)) ElectricalScore++;
-                                if (FireSafetyKeyWords.Contains(taggy)) FireSafetyScore++;
-                                sb.Append(taggy);
-                                sb.Append(' ');
-                            }
+                            AzureList.Add(item);
                         }
-                        if (imageAnalysis.Description.Captions.Count > 0)
-                        {
-                            foreach (var capi in imageAnalysis.Description.Captions)
-                            {
-                                sb.Append("---");
-                                sb.Append(capi.Text);
-                                sb.Append(' ');
-                            }
-                        }
-                        var ppp = new p();
-                        ppp.GeneralRepairScore = GeneralRepairScore;
-                        ppp.HVACScore = HVACScore;
-                        ppp.JanitorialScore = JanitorialScore;
-                        ppp.LighhtingScore = LighhtingScore;
-                        ppp.LocksmithScore = LocksmithScore;
-                        ppp.PlumbingScore = PlumbingScore;
-                        ppp.PestControlScore = PestControlScore;
-                        ppp.AutoDoorsgScore = AutoDoorsgScore;
-                        ppp.ElectricalScore = ElectricalScore;
-                        ppp.FireSafetyScore = FireSafetyScore;
-
-           
-
-                        var winner = ppp.GetType().GetFields().OrderByDescending(f => f.GetValue(ppp)).First().Name;
-                        var selectedRTRC = "Unable to decide...";
-                        switch (winner)
-                        {
+                        var selectedRTRCAzure = GetWinner(AzureList);
+                        var selectedRTRCAWS = GetWinner(AWSList);
 
 
-                            case "GeneralRepairScore":
-                                selectedRTRC = "General Repair";
-                                break;
-                            case "HVACScore":
-                                selectedRTRC = "HVAC";
-                                break;
-                            case "JanitorialScore":
-                                selectedRTRC = "Janitorial";
-                                break;
-                            case "LighhtingScore":
-                                selectedRTRC = "Lighting";
-                                break;
-                            case "LocksmithScore":
-                                selectedRTRC = "Locksmith";
-                                break;
-                            case "PlumbingScore":
-                                selectedRTRC = "Plumbing";
-                                break;
-                            case "PestControlScore":
-                                selectedRTRC = "Pest Control";
-                                break;
-                            case "AutoDoorsgScore":
-                                selectedRTRC = "Autodoors";
-                                break;
-                            case "ElectricalScore":
-                                selectedRTRC = "Electrical";
-                                break;
-                            case "FireSafetyScore":
-                                selectedRTRC = "Fire Safety";
-                                break;
-                            default:
-                                break;
+                        sb.Append("*********************AZURE*********************** ");
+                        sb.Append("\n");
+                        sb.Append(selectedRTRCAzure);
+                        sb.Append("\n");
+
+                        sb.Append("**********************AWS************************ ");
+                        sb.Append("\n");
+                        sb.Append(selectedRTRCAWS);
+                        sb.Append("\n");
 
 
-                        }
 
-                        sb.Append("------------------------------------------->");
-                        sb.Append(selectedRTRC);
-                        sb.Append(' ');
-
-                        
-
-                        //if (!ocrResult.Language.Equals("unk"))
-                        //{
-                        //    foreach (OcrLine ocrLine in ocrResult.Regions[0].Lines)
-                        //    {
-                        //        foreach (OcrWord ocrWord in ocrLine.Words)
-                        //        {
-                        //            sb.Append(ocrWord.Text);
-                        //            sb.Append(' ');
-                        //        }
-                        //        sb.AppendLine();
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    sb.Append("This language is not supported.");
-                        //}
                         ocrResultDTO.DetectedText = sb.ToString();
-                        ocrResultDTO.Language = ocrResult.Language;
                     }
                 }
                 return ocrResultDTO;
@@ -207,7 +112,99 @@ namespace ngComputerVision.Controllers
             }
         }
 
-        static async Task<string> ReadTextFromStream(byte[] byteData)
+        private string GetWinner(List<string> listToEvaluate)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            var GeneralRepairScore = 0;
+            var HVACScore = 0;
+            var JanitorialScore = 0;
+            var LighhtingScore = 0;
+            var LocksmithScore = 0;
+            var PlumbingScore = 0;
+            var PestControlScore = 0;
+            var AutoDoorsgScore = 0;
+            var ElectricalScore = 0;
+            var FireSafetyScore = 0;
+
+
+            if (listToEvaluate.Count > 0)
+            {
+                foreach (var taggy in listToEvaluate)
+                {
+                    if (GeneralRepairKeyWords.Contains(taggy.ToUpper())) GeneralRepairScore++;
+                    if (HVACKeyWords.Contains(taggy.ToUpper())) HVACScore++;
+                    if (JanitorialKeyWords.Contains(taggy.ToUpper())) JanitorialScore++;
+                    if (LighhtingKeyWords.Contains(taggy.ToUpper())) LighhtingScore++;
+                    if (LocksmithKeyWords.Contains(taggy.ToUpper())) LocksmithScore++;
+                    if (PlumbingKeyWords.Contains(taggy.ToUpper())) PlumbingScore++;
+                    if (PestControlKeyWords.Contains(taggy.ToUpper())) PestControlScore++;
+                    if (AutoDoorsgKeyWords.Contains(taggy.ToUpper())) AutoDoorsgScore++;
+                    if (ElectricalKeyWords.Contains(taggy.ToUpper())) ElectricalScore++;
+                    if (FireSafetyKeyWords.Contains(taggy.ToUpper())) FireSafetyScore++;
+                    sb.Append(taggy);
+                    sb.Append(" - ");
+                }
+            }
+
+            var ppp = new p
+            {
+                GeneralRepairScore = GeneralRepairScore,
+                HVACScore = HVACScore,
+                JanitorialScore = JanitorialScore,
+                LighhtingScore = LighhtingScore,
+                LocksmithScore = LocksmithScore,
+                PlumbingScore = PlumbingScore,
+                PestControlScore = PestControlScore,
+                AutoDoorsgScore = AutoDoorsgScore,
+                ElectricalScore = ElectricalScore,
+                FireSafetyScore = FireSafetyScore
+            };
+
+            var winner = ppp.GetType().GetFields().OrderByDescending(f => f.GetValue(ppp)).First().Name;
+            var selectedRTRC = "None";
+            switch (winner)
+            {
+                case "GeneralRepairScore":
+                    selectedRTRC = "General Repair";
+                    break;
+                case "HVACScore":
+                    selectedRTRC = "HVAC";
+                    break;
+                case "JanitorialScore":
+                    selectedRTRC = "Janitorial";
+                    break;
+                case "LighhtingScore":
+                    selectedRTRC = "Lighting";
+                    break;
+                case "LocksmithScore":
+                    selectedRTRC = "Locksmith";
+                    break;
+                case "PlumbingScore":
+                    selectedRTRC = "Plumbing";
+                    break;
+                case "PestControlScore":
+                    selectedRTRC = "Pest Control";
+                    break;
+                case "AutoDoorsgScore":
+                    selectedRTRC = "Autodoors";
+                    break;
+                case "ElectricalScore":
+                    selectedRTRC = "Electrical";
+                    break;
+                case "FireSafetyScore":
+                    selectedRTRC = "Fire Safety";
+                    break;
+                default:
+                    break;
+            }
+
+            sb.Append("==========>");
+            sb.Append(selectedRTRC);
+            return sb.ToString();
+        }
+
+        static async Task<string> ReadTextFromStreamAzure(byte[] byteData)
         {
             try
             {
@@ -226,6 +223,44 @@ namespace ngComputerVision.Controllers
                 string contentString = await response.Content.ReadAsStringAsync();
                 string result = JToken.Parse(contentString).ToString();
                 return result;
+            }
+            catch (Exception e)
+            {
+                return e.Message;
+            }
+        }
+        static async Task<string> ReadTextFromStreamAWS(byte[] byteData)
+        {
+            try
+            {
+                using (var imageCient = new AmazonRekognitionClient())
+                {
+                    var stream = new MemoryStream(byteData);
+
+                    //if using .NET Core, make sure to use await keyword and async method
+                    var detectResponses = await imageCient.DetectLabelsAsync(new DetectLabelsRequest
+                    {
+                        MinConfidence = 75,
+                        Image = new Image
+                        {
+                            Bytes = stream
+                            //S3Object = new Amazon.Rekognition.Model.S3Object
+                            //{
+                            //    Bucket = record.S3.Bucket.Name,
+                            //    Name = record.S3.Object.Key
+                            //}
+                        }
+                    });
+
+                    var contentString = new List<string>();
+                    foreach (var item in detectResponses.Labels)
+                    {
+                        contentString.Add(item.Name);
+                    }
+
+                    var json = JsonConvert.SerializeObject(contentString);
+                    return json;
+                }
             }
             catch (Exception e)
             {
@@ -263,7 +298,7 @@ namespace ngComputerVision.Controllers
     }
 
 
-   public  struct p
+    public struct p
     {
         public int GeneralRepairScore, HVACScore, JanitorialScore, LighhtingScore, LocksmithScore,
             PlumbingScore, PestControlScore, AutoDoorsgScore, ElectricalScore, FireSafetyScore;
