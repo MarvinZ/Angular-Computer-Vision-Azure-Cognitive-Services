@@ -31,17 +31,18 @@ namespace ngComputerVision.Controllers
                                                 "UNIT", "LEAK", "LEAKING", "COOL", "COOLING", "HEATING",
                                                 "HOT", "AC", "thermostat", "RTU", "HUMIDITY", "WARM", "HUMID", "EMS",
                                                 "VENT", "VENTILATION", "ROOF", "TOP", "REFRIGERANT", "BROKEN", "REPAIR",
-                                                "CLOCK", "WHITE", "REMOTE", "CONTROL", "OUTDOOR", "BUILDING", "REFRIGERATOR", "MICROWAVE",  };
+                                                "CLOCK", "WHITE", "REMOTE", "CONTROL", "OUTDOOR", "BUILDING", "REFRIGERATOR", "MICROWAVE",
+        "ELECTRIC FAN", "DIGITAL CLOCK"};
         string[] JanitorialKeyWords = new string[] { "JANITOR", "FLOOR", "BROOM", "dirty", "WET", "MOP" };
         string[] LighhtingKeyWords = new string[] { "LIGHT", "BULB", "FLUORESCENT", "SIGN", "LAMP", "MERCURY", "tube" };
         string[] LocksmithKeyWords = new string[] { "LOCK", "DOOR", "LOCKSMITH", "KEY" };
-        string[] PlumbingKeyWords = new string[] { "SINK FAUCET", "FAUCET", "PLUMBER", "PIPE", "SINK", "water", "BATHROOM", "TOILET", "INDOOR", };
+        string[] PlumbingKeyWords = new string[] { "SINK FAUCET", "FAUCET", "PLUMBER", "PIPE", "SINK", "WATER", "BATHROOM", "TOILET", "INDOOR",
+                                                    "PLUMBING", "RESTROOM"};
         string[] PestControlKeyWords = new string[] { "INSECT", "RAT", "MOUSE", "HONEYCOMB", "ANT", "BEE", "ANIMAL", "MAMMAL", "RODENT", "BIRD", "NEST", 
                                                     "HIVE" };
         string[] AutoDoorsgKeyWords = new string[] { "DOOR", "AUTODOOR", "TRANSPARENT", "glass", "building" };
         string[] ElectricalKeyWords = new string[] { "WIRE", "ELECTRICITY", "CIRCUIT", "WIRING", "CABLE", "ELECTRONICS" };
         string[] FireSafetyKeyWords = new string[] { "fire", "EXTINGUISHER", "SAFETY" };
-
 
 
 
@@ -87,7 +88,7 @@ namespace ngComputerVision.Controllers
                         var selectedRTRCAWS = GetWinner(AWSList);
 
 
-                        sb.Append("*********************AZURE*********************** ");
+                        sb.Append("*********************Azure*********************** ");
                         sb.Append("\n");
                         sb.Append(selectedRTRCAzure);
                         sb.Append("\n");
@@ -244,11 +245,6 @@ namespace ngComputerVision.Controllers
                         Image = new Image
                         {
                             Bytes = stream
-                            //S3Object = new Amazon.Rekognition.Model.S3Object
-                            //{
-                            //    Bucket = record.S3.Bucket.Name,
-                            //    Name = record.S3.Object.Key
-                            //}
                         }
                     });
 
