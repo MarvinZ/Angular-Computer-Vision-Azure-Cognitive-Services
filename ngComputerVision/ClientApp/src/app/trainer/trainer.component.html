@@ -1,0 +1,35 @@
+<h2>Trainer</h2>
+
+<div class="row">
+  <div class="col-md-5">
+
+    <textarea disabled class="form-control" rows="10" cols="15">{{ocrResult?.detectedText}}</textarea>
+    <hr />
+    <div class="row">
+      <!--<div class="col-sm-5">
+        <label><strong> Detected Language :</strong></label>
+      </div>-->
+      <!--<div class="col-sm-6">
+        <input disabled type="text" class="form-control" value={{DetectedTextLanguage}} />
+      </div>-->
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="image-container">
+      <img class="preview-image" src={{imagePreview}}>
+    </div>
+    <input type="text" (change)="uploadImageFromUrl($event)" />
+
+    <hr />
+    <input type="URL" name="myURL" [(ngModel)]="myURL" placeholder="insert image URL here" (change)="onURLinserted() ">
+
+    <img [src]="imageToShow" alt="Place image title" width="400px" height="400px">
+    <hr />
+
+    <p>{{status}}</p>
+    <hr />
+    <button [disabled]="loading" class="btn btn-primary btn-lg" (click)="GetText2()">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>Analyze Image
+    </button>
+  </div>
+</div>

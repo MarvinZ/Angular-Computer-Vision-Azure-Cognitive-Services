@@ -19,7 +19,7 @@ namespace ngComputerVision.Controllers
 {
     [Produces("application/json")]
     [Route("api/[controller]")]
-    public class OCRController : Controller
+    public class ImageController : Controller
     {
         static string subscriptionKey;
         static string endpoint;
@@ -38,7 +38,7 @@ namespace ngComputerVision.Controllers
         string[] LocksmithKeyWords = new string[] { "LOCK", "DOOR", "LOCKSMITH", "KEY" };
         string[] PlumbingKeyWords = new string[] { "SINK FAUCET", "FAUCET", "PLUMBER", "PIPE", "SINK", "WATER", "BATHROOM", "TOILET", "INDOOR",
                                                     "PLUMBING", "RESTROOM"};
-        string[] PestControlKeyWords = new string[] { "INSECT", "RAT", "MOUSE", "HONEYCOMB", "ANT", "BEE", "ANIMAL", "MAMMAL", "RODENT", "BIRD", "NEST", 
+        string[] PestControlKeyWords = new string[] { "INSECT", "RAT", "MOUSE", "HONEYCOMB", "ANT", "BEE", "ANIMAL", "MAMMAL", "RODENT", "BIRD", "NEST",
                                                     "HIVE" };
         string[] AutoDoorsgKeyWords = new string[] { "DOOR", "AUTODOOR", "TRANSPARENT", "glass", "building" };
         string[] ElectricalKeyWords = new string[] { "WIRE", "ELECTRICITY", "CIRCUIT", "WIRING", "CABLE", "ELECTRONICS" };
@@ -46,47 +46,42 @@ namespace ngComputerVision.Controllers
 
 
 
-        public OCRController()
+        public ImageController()
         {
             subscriptionKey = "37b5da280e9b4042b0aa43c434ca00f0";
             endpoint = "https://visionwo.cognitiveservices.azure.com/";
             uriBase = endpoint + "vision/v2.0/describe?maxCandidates=2";
         }
 
-
         [HttpPost]
-        public async Task<OcrResultDTO> Post()
+
+        public async Task<OcrResultDTO> Post([FromBody] myImg image)
         {
             StringBuilder sb = new StringBuilder();
             OcrResultDTO ocrResultDTO = new OcrResultDTO();
+            //  var baseURLImage = "https://www.fmpilot2.com/Attachment/IFM/AAR-PV08/WEB-1721300/1[20200616_182215543].jpg";
             try
             {
-                if (Request.Form.Files.Count > 0)
+                if (!string.IsNullOrEmpty(image.filename))
                 {
-                    var file = Request.Form.Files[Request.Form.Files.Count - 1];
 
-                    if (file.Length > 0)
+                    string JSONResult = await ReadTextFromStreamAzureUrl(image.filename);
+                    //string JSONResult2 = await ReadTextFromStreamAWS(ImageUrl);
+
+                    ImageDescription imgDescAzure = JsonConvert.DeserializeObject<ImageDescription>(JSONResult);
+                    // var AWSList = JsonConvert.DeserializeObject<List<string>>(JSONResult2);
+                    ImageAnalysis imageAnalysis = JsonConvert.DeserializeObject<ImageAnalysis>(JSONResult);
+                    TagResult TagResult = JsonConvert.DeserializeObject<TagResult>(JSONResult);
+                    //OcrResult ocrResult = JsonConvert.DeserializeObject<OcrResult>(JSONResult);
+                    var AzureList = new List<string>();
+                    if (imageAnalysis.Description != null)
                     {
-                        var memoryStream = new MemoryStream();
-                        file.CopyTo(memoryStream);
-                        byte[] imageFileBytes = memoryStream.ToArray();
-                        memoryStream.Flush();
-
-                        string JSONResult = await ReadTextFromStreamAzure(imageFileBytes);
-                        string JSONResult2 = await ReadTextFromStreamAWS(imageFileBytes);
-
-                        ImageDescription imgDescAzure = JsonConvert.DeserializeObject<ImageDescription>(JSONResult);
-                        var AWSList = JsonConvert.DeserializeObject<List<string>>(JSONResult2);
-                        ImageAnalysis imageAnalysis = JsonConvert.DeserializeObject<ImageAnalysis>(JSONResult);
-                        TagResult TagResult = JsonConvert.DeserializeObject<TagResult>(JSONResult);
-                        //OcrResult ocrResult = JsonConvert.DeserializeObject<OcrResult>(JSONResult);
-                        var AzureList = new List<string>();
                         foreach (var item in imageAnalysis.Description.Tags)
                         {
                             AzureList.Add(item);
                         }
                         var selectedRTRCAzure = GetWinner(AzureList);
-                        var selectedRTRCAWS = GetWinner(AWSList);
+                        //    var selectedRTRCAWS = GetWinner(AWSList);
 
 
                         sb.Append("*********************Azure*********************** ");
@@ -96,14 +91,23 @@ namespace ngComputerVision.Controllers
 
                         sb.Append("**********************AWS************************ ");
                         sb.Append("\n");
-                        sb.Append(selectedRTRCAWS);
+                        //   sb.Append(selectedRTRCAWS);
                         sb.Append("\n");
 
 
 
                         ocrResultDTO.DetectedText = sb.ToString();
                     }
+                    else
+                    {
+
+                        ocrResultDTO.DetectedText = "Cannot process this image";
+                    }
+
+
+
                 }
+
                 return ocrResultDTO;
             }
             catch
@@ -113,6 +117,7 @@ namespace ngComputerVision.Controllers
                 return ocrResultDTO;
             }
         }
+
 
         private string GetWinner(List<string> listToEvaluate)
         {
@@ -331,11 +336,7 @@ namespace ngComputerVision.Controllers
     }
 
 
-    public struct p
-    {
-        public int GeneralRepairScore, HVACScore, JanitorialScore, LighhtingScore, LocksmithScore,
-            PlumbingScore, PestControlScore, AutoDoorsgScore, ElectricalScore, FireSafetyScore;
-    }
+
 
 
 }
